@@ -1,0 +1,6 @@
+services:
+  api-etiquetas:
+    container_name: api-etiquetas
+    build: .
+    ports:
+      - "4005:3000"

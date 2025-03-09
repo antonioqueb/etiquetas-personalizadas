@@ -2,6 +2,7 @@
 const nextConfig = {
     reactStrictMode: true, // Modo estricto de React para detectar errores en desarrollo
     swcMinify: true, // Optimización con SWC para mejorar rendimiento
+    output: 'standalone',
     
     async rewrites() {
       return [
