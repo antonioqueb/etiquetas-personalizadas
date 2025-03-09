@@ -3,4 +3,4 @@ services:
     container_name: api-etiquetas
     build: .
     ports:
-      - "4005:3000"
+      - "3000:3000"
