@@ -36,15 +36,15 @@ export default function PdfGenerator({ products, folio }) {
         doc.text(`${product.scheduled_date}`, 10, yOffsetProduct);
         doc.text(`PC: ${product.origin}`, 10, yOffsetProduct + 15);
 
-        // Lotes (y dejamos un margen extra por debajo)
-        const lotesText = data.lotes.length > 0 ? data.lotes.join(", ") : "N/A";
+        // Lote único (ahora cada fila maneja solo un lote en "data.lotes")
+        const loteUnico = data.lotes.length > 0 ? data.lotes[0] : "N/A";
         const loteY = yOffsetProduct + 30;
-        doc.text(`LOTE: ${lotesText}`, 10, loteY);
+        doc.text(`LOTE: ${loteUnico}`, 10, loteY);
 
         // Definimos un margen de 10 puntos debajo del LOTE
         let yOffset = loteY + 10;
 
-        // Ahora imprimimos TIPO, GRAMAJE, etc., en tamaño grande
+        // Ahora imprimimos TIPO, GRAMAJE, etc. en tamaño grande
         doc.setFontSize(35);
         yOffset += 10; // Ajuste adicional para separar más la primera línea
         doc.text(`TIPO:  ${data.tipo}`, 10, yOffset);
@@ -73,7 +73,7 @@ export default function PdfGenerator({ products, folio }) {
         const lowerProductText = doc.splitTextToSize(product.producto, 180);
         doc.text(lowerProductText, 10, lowerBlockOffset);
         
-        // Calcular espacio usado por el nombre del producto
+        // Calculamos el espacio que usó el nombre del producto
         const lowerLinesUsed = lowerProductText.length;
         lowerBlockOffset += lowerLinesUsed * 8 + 5; // Ajustamos con margen extra
         
@@ -81,7 +81,7 @@ export default function PdfGenerator({ products, folio }) {
         lowerBlockOffset += 10;
         doc.text(`PC: ${product.origin}`, 10, lowerBlockOffset);
         lowerBlockOffset += 10;
-        doc.text(`Lote: ${lotesText}`, 10, lowerBlockOffset);
+        doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
         lowerBlockOffset += 15; // Un poco más de espacio antes de TIPO
       });
     });
