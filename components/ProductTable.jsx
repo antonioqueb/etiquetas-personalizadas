@@ -12,12 +12,12 @@ export default function ProductTable({ folio, onResetFolio }) {
     fetchProductDetails(folio).then((data) => {
       setProducts(data);
 
-      // Generamos las filas iniciales por cada lote
       const initialRows = {};
       data.forEach((product) => {
         const filasPorLote = product.lotes.map((lote) => ({
           lotes: [lote.lote],
-          kilos: lote.cantidad, // Rellenar kilos automáticamente
+          kilos: lote.cantidad,
+          secuencia: "",
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -30,7 +30,6 @@ export default function ProductTable({ folio, onResetFolio }) {
     });
   }, [folio]);
 
-  // Agrega una nueva fila con un solo lote (o vacío)
   const addRow = (product, lote = "") => {
     setRows((prevRows) => ({
       ...prevRows,
@@ -39,6 +38,7 @@ export default function ProductTable({ folio, onResetFolio }) {
         {
           lotes: [lote],
           kilos: "",
+          secuencia: "",
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -48,11 +48,28 @@ export default function ProductTable({ folio, onResetFolio }) {
     }));
   };
 
-  // Actualiza valores en una fila específica
   const updateRow = (product, index, field, value) => {
     setRows((prevRows) => {
       const newRows = { ...prevRows };
-      newRows[product][index][field] = value;
+      const updatedRows = [...newRows[product]];
+
+      // Si se edita la primera fila en un campo propagable, replicar en todas las filas
+      const propagableFields = ["tipo", "gramaje", "ancho", "planta"];
+      if (index === 0 && propagableFields.includes(field)) {
+        const propagated = updatedRows.map((row) => ({
+          ...row,
+          [field]: value,
+        }));
+        newRows[product] = propagated;
+      } else {
+        // Actualizar solo la fila indicada
+        updatedRows[index] = {
+          ...updatedRows[index],
+          [field]: value,
+        };
+        newRows[product] = updatedRows;
+      }
+
       return newRows;
     });
   };
@@ -106,7 +123,8 @@ export default function ProductTable({ folio, onResetFolio }) {
                 <tr className="bg-blue-600 text-white">
                   <th className="p-2 px-12">Lote</th>
                   <th className="p-2">Kilos</th>
-                  <th className="p-2">Tipo</th>
+                  <th className="p-2">Secuencia</th>
+                  <th className="p-2 px-4">Tipo</th>
                   <th className="p-2">Gramaje</th>
                   <th className="p-2">Ancho</th>
                   <th className="p-2">Planta</th>
@@ -134,20 +152,28 @@ export default function ProductTable({ folio, onResetFolio }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 cursor-not-allowed"
                       />
                     </td>
-                    {["tipo", "gramaje", "ancho", "planta"].map(
-                      (field) => (
-                        <td key={field} className="p-2">
-                          <input
-                            type="text"
-                            value={row[field]}
-                            onChange={(e) =>
-                              updateRow(product.producto, index, field, e.target.value)
-                            }
-                            className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
-                          />
-                        </td>
-                      )
-                    )}
+                    <td className="p-2">
+                      <input
+                        type="text"
+                        value={row.secuencia}
+                        onChange={(e) =>
+                          updateRow(product.producto, index, "secuencia", e.target.value)
+                        }
+                        className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                      />
+                    </td>
+                    {["tipo", "gramaje", "ancho", "planta"].map((field) => (
+                      <td key={field} className="p-2">
+                        <input
+                          type="text"
+                          value={row[field]}
+                          onChange={(e) =>
+                            updateRow(product.producto, index, field, e.target.value)
+                          }
+                          className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+                        />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>
@@ -156,7 +182,6 @@ export default function ProductTable({ folio, onResetFolio }) {
         </div>
       ))}
 
-      {/* Componente para generar PDF */}
       <PdfGenerator
         folio={folio}
         products={products.map((product) => ({
