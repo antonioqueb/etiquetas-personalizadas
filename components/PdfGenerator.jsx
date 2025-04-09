@@ -21,7 +21,7 @@ export default function PdfGenerator({ products, folio }) {
         doc.setFont("helvetica", "bold");
 
         // Título principal ahora es la secuencia, mucho más grande
-        doc.setFontSize(40);
+        doc.setFontSize(30);
         const loteY = 60; // puedes ajustar si quieres más separación visual
         doc.text(`# ${secuencia}`, 10, loteY);
 
