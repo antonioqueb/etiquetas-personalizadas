@@ -15,30 +15,38 @@ export default function PdfGenerator({ products, folio }) {
         /***********************
          *    SECCIÓN SUPERIOR
          ***********************/
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(26);
-        doc.text(`Documento: ${folio}`, 10, 30);
+        const loteUnico = data.lotes.length > 0 ? data.lotes[0] : "N/A";
+        const secuencia = data.secuencia || "N/A";
 
+        doc.setFont("helvetica", "bold");
+
+        // Título principal ahora es la secuencia, mucho más grande
+        doc.setFontSize(40);
+        const loteY = 60; // puedes ajustar si quieres más separación visual
+        doc.text(`SECUENCIA: ${secuencia}`, 10, loteY);
+
+        // Documento (folio) pasa a segundo plano, debajo del título
+        doc.setFontSize(26);
+        doc.text(`Documento: ${folio}`, 10, loteY + 12);
+
+        // Producto
         doc.setFontSize(22);
         const productText = doc.splitTextToSize(product.producto, 180);
-        doc.text(productText, 10, 45);
+        doc.text(productText, 10, loteY + 30);
 
         const linesUsed = productText.length;
-        let yOffsetProduct = 45 + (linesUsed * 8) + 10;
+        let yOffsetProduct = loteY + 30 + (linesUsed * 8) + 10;
 
         doc.text(`${product.scheduled_date}`, 10, yOffsetProduct);
         doc.text(`PC: ${product.origin}`, 10, yOffsetProduct + 15);
 
-        const loteUnico = data.lotes.length > 0 ? data.lotes[0] : "N/A";
-        const secuencia = data.secuencia || "N/A";
-        const loteY = yOffsetProduct + 30;
-        doc.text(`LOTE: ${loteUnico}`, 10, loteY);
-        doc.text(`SECUENCIA: ${secuencia}`, 10, loteY + 10);
+        doc.text(`LOTE: ${loteUnico}`, 10, yOffsetProduct + 30);
+        doc.text(`SECUENCIA: ${secuencia}`, 10, yOffsetProduct + 40);
 
         /***************
          * Campos grandes
          ***************/
-        let yOffset = loteY + 25;
+        let yOffset = yOffsetProduct + 55;
         doc.setFontSize(35);
         doc.text(`TIPO:  ${data.tipo}`, 10, yOffset);
         doc.text(`GRAMAJE:  ${data.gramaje}`, 10, yOffset + 15);
