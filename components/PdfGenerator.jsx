@@ -20,33 +20,32 @@ export default function PdfGenerator({ products, folio }) {
 
         doc.setFont("helvetica", "bold");
 
-        // Título principal ahora es la secuencia, mucho más grande
-        doc.setFontSize(30);
-        const loteY = 60; // puedes ajustar si quieres más separación visual
-        doc.text(`# ${secuencia}`, 10, loteY);
+        // NUEVO TÍTULO: "# SECUENCIA"
+        doc.setFontSize(42);
+        doc.text(`# ${secuencia}`, 10, 30);  // mismo Y que antes para mantener proporción
 
-        // Documento (folio) pasa a segundo plano, debajo del título
+        // Documento (ahora debajo)
         doc.setFontSize(26);
-        doc.text(`Documento: ${folio}`, 10, loteY + 12);
+        doc.text(`Documento: ${folio}`, 10, 40);
 
         // Producto
         doc.setFontSize(22);
         const productText = doc.splitTextToSize(product.producto, 180);
-        doc.text(productText, 10, loteY + 30);
+        doc.text(productText, 10, 55);
 
         const linesUsed = productText.length;
-        let yOffsetProduct = loteY + 30 + (linesUsed * 8) + 10;
+        let yOffsetProduct = 55 + (linesUsed * 8) + 10;
 
         doc.text(`${product.scheduled_date}`, 10, yOffsetProduct);
         doc.text(`PC: ${product.origin}`, 10, yOffsetProduct + 15);
 
-        doc.text(`LOTE: ${loteUnico}`, 10, yOffsetProduct + 30);
-        doc.text(`SECUENCIA: ${secuencia}`, 10, yOffsetProduct + 40);
+        const loteY = yOffsetProduct + 30;
+        doc.text(`LOTE: ${loteUnico}`, 10, loteY);
 
         /***************
          * Campos grandes
          ***************/
-        let yOffset = yOffsetProduct + 55;
+        let yOffset = loteY + 15;
         doc.setFontSize(35);
         doc.text(`TIPO:  ${data.tipo}`, 10, yOffset);
         doc.text(`GRAMAJE:  ${data.gramaje}`, 10, yOffset + 15);
@@ -78,8 +77,7 @@ export default function PdfGenerator({ products, folio }) {
         doc.text(`PC: ${product.origin}`, 10, lowerBlockOffset);
         lowerBlockOffset += 10;
         doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 10;
-        doc.text(`Secuencia: ${secuencia}`, 10, lowerBlockOffset);
+        // Ya no se repite secuencia aquí
         lowerBlockOffset += 15;
       });
     });
