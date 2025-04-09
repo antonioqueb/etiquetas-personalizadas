@@ -20,13 +20,13 @@ export default function PdfGenerator({ products, folio }) {
 
         doc.setFont("helvetica", "bold");
 
-        // NUEVO TÍTULO: "# SECUENCIA"
-        doc.setFontSize(42);
-        doc.text(`# ${secuencia}`, 10, 30);  // mismo Y que antes para mantener proporción
+        // SECUENCIA
+        doc.setFontSize(52);
+        doc.text(`# ${secuencia}`, 10, 30);  // Título grande con secuencia
 
-        // Documento (ahora debajo)
+        // Documento (ahora debajo con espacio adicional)
         doc.setFontSize(26);
-        doc.text(`Documento: ${folio}`, 10, 40);
+        doc.text(`Documento: ${folio}`, 10, 45);  // Bajado para dejar espacio visual
 
         // Producto
         doc.setFontSize(22);
@@ -77,8 +77,11 @@ export default function PdfGenerator({ products, folio }) {
         doc.text(`PC: ${product.origin}`, 10, lowerBlockOffset);
         lowerBlockOffset += 10;
         doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
-        // Ya no se repite secuencia aquí
         lowerBlockOffset += 15;
+
+        // Secuencia en pequeño al final
+        doc.setFontSize(12);
+        doc.text(`Secuencia: ${secuencia}`, 10, lowerBlockOffset);
       });
     });
 
