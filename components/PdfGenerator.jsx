@@ -21,7 +21,7 @@ export default function PdfGenerator({ products, folio }) {
         doc.setFont("helvetica", "bold");
 
         // SECUENCIA
-        doc.setFontSize(60);
+        doc.setFontSize(72);
         doc.text(`# ${secuencia}`, 10, 30);  // Título grande con secuencia
 
         // Documento (ahora debajo con espacio adicional)
