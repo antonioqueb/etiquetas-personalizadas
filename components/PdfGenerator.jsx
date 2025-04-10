@@ -21,7 +21,7 @@ export default function PdfGenerator({ products, folio }) {
         doc.setFont("helvetica", "bold");
 
         // SECUENCIA
-        doc.setFontSize(52);
+        doc.setFontSize(60);
         doc.text(`# ${secuencia}`, 10, 30);  // Título grande con secuencia
 
         // Documento (ahora debajo con espacio adicional)
@@ -78,9 +78,6 @@ export default function PdfGenerator({ products, folio }) {
         lowerBlockOffset += 10;
         doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
         lowerBlockOffset += 15;
-
-        // Secuencia en pequeño al final
-        doc.setFontSize(12);
         doc.text(`Secuencia: ${secuencia}`, 10, lowerBlockOffset);
       });
     });
