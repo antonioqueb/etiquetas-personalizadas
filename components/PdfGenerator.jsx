@@ -77,7 +77,7 @@ export default function PdfGenerator({ products, folio }) {
         doc.text(`PC: ${product.origin}`, 10, lowerBlockOffset);
         lowerBlockOffset += 10;
         doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 15;
+        lowerBlockOffset += 10;
         doc.text(`Secuencia: ${secuencia}`, 10, lowerBlockOffset);
       });
     });
