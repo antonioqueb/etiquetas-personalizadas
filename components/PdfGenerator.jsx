@@ -1,90 +1,148 @@
 "use client";
 import { jsPDF } from "jspdf";
+import JsBarcode from "jsbarcode";
 import { FileText } from "lucide-react";
 
+/* ─── Utilidad para cargar imágenes desde /public ─── */
+const loadImage = (src) =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = src;
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+  });
+
+/* ─── Conversión mm → px a 300 dpi ─── */
+const DPI = 300;                          // resolución destino
+const mmToPx = (mm) => Math.round((mm / 25.4) * DPI);
+
 export default function PdfGenerator({ products, folio }) {
-  const generateAllPdfs = () => {
-    const doc = new jsPDF();
+  /* ─── Configuración global ─── */
+  const LABEL_W = 100;  // mm (≈ 4")
+  const LABEL_H = 200;  // mm (≈ 8")
+  const MARGIN  = 6;    // mm borde
+  const BAR_W_MM = 0.3; // mm de una barra (≈ 0.012") — ajusta si quieres barras más gruesas
 
-    products.forEach((product, prodIndex) => {
-      product.lines.forEach((data, index) => {
-        if (prodIndex > 0 || index > 0) {
-          doc.addPage();
+  /* ─── Genera barcode PNG en alta resolución ─── */
+  const barcodeDataURL = (text, mmWidth, mmHeight) => {
+    const canvas  = document.createElement("canvas");
+    canvas.width  = mmToPx(mmWidth);
+    canvas.height = mmToPx(mmHeight);
+
+    JsBarcode(canvas, text, {
+      format: "CODE128",
+      displayValue: false,
+      margin: 0,
+      height: canvas.height,
+      width: mmToPx(BAR_W_MM), // anchura mínima de barra a 300 dpi
+      background: "#ffffff",
+      lineColor: "#000000",
+    });
+    return canvas.toDataURL("image/png");
+  };
+
+  /* ─── Generación de PDFs ─── */
+  const generateAllPdfs = async () => {
+    /* Logo en escala de grises (en /public/hm.png) */
+    const logo  = await loadImage("/hm.png");
+    const logoW = 36;
+    const logoH = 36 * (logo.height / logo.width);
+
+    const doc = new jsPDF({
+      unit: "mm",
+      format: [LABEL_W, LABEL_H],
+      orientation: "portrait",
+    });
+
+    products.forEach((product, pIdx) => {
+      product.lines.forEach((data, lIdx) => {
+        if (pIdx > 0 || lIdx > 0) doc.addPage();
+
+        /* ─── Datos origen ─── */
+        const loteEtiqueta = (data.lotes?.[0]     || "N/A").toUpperCase();
+        const loteProv     = (data.lote_proveedor || "N/A").toUpperCase();
+        const ordenOC      = (product.origin      || "N/A").toUpperCase();
+        const docCompra    = folio.toString().toUpperCase();
+        const fechaHora    = (product.scheduled_date || "N/A").toUpperCase();
+        const tipo         = (data.tipo     || "—").toUpperCase();
+        const gramaje      = (data.gramaje  || "—").toUpperCase();
+        const ancho        = (data.ancho    || "—").toUpperCase();
+        const planta       = (data.planta   || "—").toUpperCase();
+        const kilos        = (data.kilos    || "—").toString().toUpperCase();
+
+        /* ─── Encabezado con barcode Hi-DPI ─── */
+        const bcWidthMm = LABEL_W - 2 * MARGIN;
+        const bcHeightMm = 18;
+        doc.addImage(
+          barcodeDataURL(loteEtiqueta, bcWidthMm, bcHeightMm),
+          "PNG",
+          MARGIN,
+          8,
+          bcWidthMm,
+          bcHeightMm
+        );
+        doc.setFont("helvetica", "bold").setFontSize(12);
+        doc.text(loteEtiqueta, LABEL_W / 2, 30, { align: "center" });
+
+        /* ─── Tabla de detalle (5 filas) ─── */
+        const startY = 38;
+        const rowH   = 14;
+        const rows   = 5;
+        const tableW = LABEL_W - 2 * MARGIN;
+
+        doc.setLineWidth(0.25).rect(MARGIN, startY, tableW, rowH * rows);
+        for (let i = 1; i < rows; i++) {
+          doc.line(MARGIN, startY + rowH * i, MARGIN + tableW, startY + rowH * i);
         }
+        doc.line(LABEL_W / 2, startY, LABEL_W / 2, startY + rowH * 4); // corte en fila 4
 
-        /***********************
-         *    SECCIÓN SUPERIOR
-         ***********************/
-        const loteUnico = data.lotes.length > 0 ? data.lotes[0] : "N/A";
-        const secuencia = data.secuencia || "N/A";
+        const col1X = MARGIN + 1;
+        const col2X = LABEL_W / 2 + 2;
+        const drawCell = (label, value, x, y) => {
+          doc.setFont("helvetica", "bold").setFontSize(8);
+          doc.text(label, x, y + 4);
+          doc.setFont("helvetica", "normal");
+          doc.text(value, x, y + 10);
+        };
+        const drawFullRow = (label, value, y) => {
+          doc.setFont("helvetica", "bold").setFontSize(8);
+          doc.text(label, LABEL_W / 2, y + 4, { align: "center" });
+          doc.setFont("helvetica", "normal");
+          doc.text(value, LABEL_W / 2, y + 10, { align: "center" });
+        };
 
-        doc.setFont("helvetica", "bold");
+        drawCell("DOC. ORIGEN", docCompra, col1X, startY);
+        drawCell("PED. COMPRA",    ordenOC,   col2X, startY);
 
-        // SECUENCIA
-        doc.setFontSize(82);
-        doc.text(`# ${secuencia}`, 10, 30);  // Título grande con secuencia
+        drawCell("FECHA/HORA",  fechaHora, col1X, startY + rowH);
+        drawCell("TIPO",        tipo,      col2X, startY + rowH);
 
-        // Documento (ahora debajo con espacio adicional)
-        doc.setFontSize(26);
-        doc.text(`Documento: ${folio}`, 10, 45);  // Bajado para dejar espacio visual
+        drawCell("GRAMAJE",     gramaje,   col1X, startY + rowH * 2);
+        drawCell("ANCHO",       ancho,     col2X, startY + rowH * 2);
 
-        // Producto
-        doc.setFontSize(22);
-        const productText = doc.splitTextToSize(product.producto, 180);
-        doc.text(productText, 10, 55);
+        drawCell("PLANTA",      planta,    col1X, startY + rowH * 3);
+        drawCell("KILOS",       kilos,     col2X, startY + rowH * 3);
 
-        const linesUsed = productText.length;
-        let yOffsetProduct = 55 + (linesUsed * 8) + 10;
+        drawFullRow("LOTE PROVEEDOR", loteProv, startY + rowH * 4);
 
-        doc.text(`${product.scheduled_date}`, 10, yOffsetProduct);
-        doc.text(`PC: ${product.origin}`, 10, yOffsetProduct + 15);
-
-        const loteY = yOffsetProduct + 30;
-        doc.text(`LOTE: ${loteUnico}`, 10, loteY);
-
-        /***************
-         * Campos grandes
-         ***************/
-        let yOffset = loteY + 15;
-        doc.setFontSize(35);
-        doc.text(`TIPO:  ${data.tipo}`, 10, yOffset);
-        doc.text(`GRAMAJE:  ${data.gramaje}`, 10, yOffset + 15);
-        doc.text(`ANCHO:  ${data.ancho}`, 10, yOffset + 30);
-        doc.text(`PLANTA:  ${data.planta}`, 10, yOffset + 45);
-        doc.text(`KILOS:  ${data.kilos}`, 10, yOffset + 60);
-
-        const linePos = yOffset + 70;
-        doc.setLineWidth(1);
-        doc.line(10, linePos, 200, linePos);
-
-        /************************
-         *   SECCIÓN INFERIOR
-         ************************/
-        let lowerBlockOffset = linePos + 15;
-        doc.setFontSize(18);
-
-        doc.text(`Documento: ${folio}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 10;
-
-        const lowerProductText = doc.splitTextToSize(product.producto, 180);
-        doc.text(lowerProductText, 10, lowerBlockOffset);
-
-        const lowerLinesUsed = lowerProductText.length;
-        lowerBlockOffset += lowerLinesUsed * 8 + 5;
-
-        doc.text(`Fecha: ${product.scheduled_date}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 10;
-        doc.text(`PC: ${product.origin}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 10;
-        doc.text(`Lote: ${loteUnico}`, 10, lowerBlockOffset);
-        lowerBlockOffset += 10;
-        doc.text(`Secuencia: ${secuencia}`, 10, lowerBlockOffset);
+        /* ─── Logo centrado ─── */
+        const logoY = LABEL_H - MARGIN - logoH;
+        doc.addImage(
+          logo,
+          "PNG",
+          (LABEL_W - logoW) / 2,
+          logoY,
+          logoW,
+          logoH
+        );
       });
     });
 
     doc.save(`etiquetas-${folio}.pdf`);
   };
 
+  /* ─── Botón UI ─── */
   return (
     <button
       onClick={generateAllPdfs}

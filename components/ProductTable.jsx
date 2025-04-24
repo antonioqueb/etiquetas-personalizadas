@@ -8,16 +8,16 @@ export default function ProductTable({ folio, onResetFolio }) {
   const [products, setProducts] = useState([]);
   const [rows, setRows] = useState({});
 
+  /* ───── Carga inicial de datos ───── */
   useEffect(() => {
     fetchProductDetails(folio).then((data) => {
       setProducts(data);
-
       const initialRows = {};
       data.forEach((product) => {
         const filasPorLote = product.lotes.map((lote) => ({
           lotes: [lote.lote],
           kilos: lote.cantidad,
-          secuencia: "",
+          lote_proveedor: "",          // <── NUEVO
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -25,20 +25,20 @@ export default function ProductTable({ folio, onResetFolio }) {
         }));
         initialRows[product.producto] = filasPorLote;
       });
-
       setRows(initialRows);
     });
   }, [folio]);
 
+  /* ───── Agrega una línea manual ───── */
   const addRow = (product, lote = "") => {
-    setRows((prevRows) => ({
-      ...prevRows,
+    setRows((prev) => ({
+      ...prev,
       [product]: [
-        ...prevRows[product],
+        ...prev[product],
         {
           lotes: [lote],
           kilos: "",
-          secuencia: "",
+          lote_proveedor: "",
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -48,29 +48,20 @@ export default function ProductTable({ folio, onResetFolio }) {
     }));
   };
 
+  /* ───── Actualiza campo (propagando cabecera si aplica) ───── */
   const updateRow = (product, index, field, value) => {
-    setRows((prevRows) => {
-      const newRows = { ...prevRows };
-      const updatedRows = [...newRows[product]];
+    setRows((prev) => {
+      const next = { ...prev };
+      const updated = [...next[product]];
+      const propagables = ["tipo", "gramaje", "ancho", "planta"];
 
-      // Si se edita la primera fila en un campo propagable, replicar en todas las filas
-      const propagableFields = ["tipo", "gramaje", "ancho", "planta"];
-      if (index === 0 && propagableFields.includes(field)) {
-        const propagated = updatedRows.map((row) => ({
-          ...row,
-          [field]: value,
-        }));
-        newRows[product] = propagated;
+      if (index === 0 && propagables.includes(field)) {
+        next[product] = updated.map((row) => ({ ...row, [field]: value }));
       } else {
-        // Actualizar solo la fila indicada
-        updatedRows[index] = {
-          ...updatedRows[index],
-          [field]: value,
-        };
-        newRows[product] = updatedRows;
+        updated[index] = { ...updated[index], [field]: value };
+        next[product] = updated;
       }
-
-      return newRows;
+      return next;
     });
   };
 
@@ -83,30 +74,25 @@ export default function ProductTable({ folio, onResetFolio }) {
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl border border-gray-200">
+    <div className="max-w-6xl mx-auto mt-10 p-6 bg-white shadow-lg rounded-2xl border border-gray-200">
       {products.map((product) => (
         <div key={product.producto} className="mb-8">
           <h2 className="text-2xl font-semibold text-blue-700 mb-4 text-center">
             Detalles del Producto
           </h2>
+
+          {/* ───── Tarjeta resumen ───── */}
           <div className="border border-gray-300 rounded-lg p-4 mb-4 text-black">
             <p className="text-lg font-medium text-gray-800">
               <strong>Producto:</strong> {product.producto}
             </p>
-            <p>
-              <strong>Orden de Origen:</strong> {product.origin}
-            </p>
-            <p>
-              <strong>Cantidad Demandada:</strong> {product.product_uom_qty}
-            </p>
-            <p>
-              <strong>Cantidad Recibida:</strong> {product.quantity}
-            </p>
-            <p>
-              <strong>Fecha de Recepción:</strong> {product.scheduled_date}
-            </p>
+            <p><strong>Orden de Origen:</strong> {product.origin}</p>
+            <p><strong>Cantidad Demandada:</strong> {product.product_uom_qty}</p>
+            <p><strong>Cantidad Recibida:</strong> {product.quantity}</p>
+            <p><strong>Fecha de Recepción:</strong> {product.scheduled_date}</p>
           </div>
 
+          {/* ───── Tabla editable ───── */}
           <h3 className="text-xl font-semibold text-green-700 mb-2">
             Líneas del Producto
           </h3>
@@ -123,7 +109,7 @@ export default function ProductTable({ folio, onResetFolio }) {
                 <tr className="bg-blue-600 text-white">
                   <th className="p-2 px-12">Lote</th>
                   <th className="p-2">Kilos</th>
-                  <th className="p-2">Secuencia</th>
+                  <th className="p-2">Lote Proveedor</th> {/* ⇠ label cambiado */}
                   <th className="p-2 px-4">Tipo</th>
                   <th className="p-2">Gramaje</th>
                   <th className="p-2">Ancho</th>
@@ -132,10 +118,7 @@ export default function ProductTable({ folio, onResetFolio }) {
               </thead>
               <tbody>
                 {rows[product.producto]?.map((row, index) => (
-                  <tr
-                    key={index}
-                    className="border-b border-gray-300 hover:bg-gray-100"
-                  >
+                  <tr key={index} className="border-b border-gray-300 hover:bg-gray-100">
                     <td className="p-2">
                       <input
                         type="text"
@@ -152,16 +135,18 @@ export default function ProductTable({ folio, onResetFolio }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 cursor-not-allowed"
                       />
                     </td>
+                    {/* ─── Lote proveedor editable ─── */}
                     <td className="p-2">
                       <input
                         type="text"
-                        value={row.secuencia}
+                        value={row.lote_proveedor}
                         onChange={(e) =>
-                          updateRow(product.producto, index, "secuencia", e.target.value)
+                          updateRow(product.producto, index, "lote_proveedor", e.target.value)
                         }
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     </td>
+                    {/* ─── Resto de columnas ─── */}
                     {["tipo", "gramaje", "ancho", "planta"].map((field) => (
                       <td key={field} className="p-2">
                         <input
@@ -182,11 +167,12 @@ export default function ProductTable({ folio, onResetFolio }) {
         </div>
       ))}
 
+      {/* ───── Generador de PDFs ───── */}
       <PdfGenerator
         folio={folio}
-        products={products.map((product) => ({
-          ...product,
-          lines: rows[product.producto] || [],
+        products={products.map((p) => ({
+          ...p,
+          lines: rows[p.producto] || [],
         }))}
       />
     </div>

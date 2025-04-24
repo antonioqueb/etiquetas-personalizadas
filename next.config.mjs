@@ -8,11 +8,11 @@ const nextConfig = {
       return [
         {
           source: "/api/recepciones",
-          destination: "http://192.168.1.8:5000/recepciones",
+          destination: "http://192.168.1.78:5000/recepciones",
         },
         {
           source: "/api/recepciones/:folio/productos",
-          destination: "http://192.168.1.8:5000/recepciones/:folio/productos",
+          destination: "http://192.168.1.78:5000/recepciones/:folio/productos",
         },
       ];
     },
