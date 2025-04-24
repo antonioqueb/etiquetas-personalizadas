@@ -46,8 +46,8 @@ export default function PdfGenerator({ products, folio }) {
   const generateAllPdfs = async () => {
     /* Logo en escala de grises (en /public/hm.png) */
     const logo  = await loadImage("/hm.png");
-    const logoW = 36;
-    const logoH = 36 * (logo.height / logo.width);
+    const logoW = 56;
+    const logoH = 56 * (logo.height / logo.width);
 
     const doc = new jsPDF({
       unit: "mm",
