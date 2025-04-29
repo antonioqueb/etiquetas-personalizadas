@@ -17,7 +17,7 @@ export default function ProductTable({ folio, onResetFolio }) {
         const filasPorLote = product.lotes.map((lote) => ({
           lotes: [lote.lote],
           kilos: lote.cantidad,
-          lote_proveedor: "",          // <── NUEVO
+          secuencia: "",    // ⇠ CAMBIO: antes lote_proveedor
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -38,7 +38,7 @@ export default function ProductTable({ folio, onResetFolio }) {
         {
           lotes: [lote],
           kilos: "",
-          lote_proveedor: "",
+          secuencia: "",
           tipo: "",
           gramaje: "",
           ancho: "",
@@ -56,6 +56,7 @@ export default function ProductTable({ folio, onResetFolio }) {
       const propagables = ["tipo", "gramaje", "ancho", "planta"];
 
       if (index === 0 && propagables.includes(field)) {
+        // Propaga a todas las líneas del mismo producto
         next[product] = updated.map((row) => ({ ...row, [field]: value }));
       } else {
         updated[index] = { ...updated[index], [field]: value };
@@ -109,7 +110,7 @@ export default function ProductTable({ folio, onResetFolio }) {
                 <tr className="bg-blue-600 text-white">
                   <th className="p-2 px-12">Lote</th>
                   <th className="p-2">Kilos</th>
-                  <th className="p-2">Lote Proveedor</th> {/* ⇠ label cambiado */}
+                  <th className="p-2 px-4">Secuencia</th> {/* ⇠ Etiqueta actualizada */}
                   <th className="p-2 px-4">Tipo</th>
                   <th className="p-2">Gramaje</th>
                   <th className="p-2">Ancho</th>
@@ -119,6 +120,7 @@ export default function ProductTable({ folio, onResetFolio }) {
               <tbody>
                 {rows[product.producto]?.map((row, index) => (
                   <tr key={index} className="border-b border-gray-300 hover:bg-gray-100">
+                    {/* ─── Lote (solo lectura) ─── */}
                     <td className="p-2">
                       <input
                         type="text"
@@ -127,6 +129,8 @@ export default function ProductTable({ folio, onResetFolio }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 cursor-not-allowed"
                       />
                     </td>
+
+                    {/* ─── Kilos (solo lectura) ─── */}
                     <td className="p-2">
                       <input
                         type="text"
@@ -135,19 +139,26 @@ export default function ProductTable({ folio, onResetFolio }) {
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 cursor-not-allowed"
                       />
                     </td>
-                    {/* ─── Lote proveedor editable ─── */}
+
+                    {/* ─── Secuencia (editable) ─── */}
                     <td className="p-2">
                       <input
                         type="text"
-                        value={row.lote_proveedor}
+                        value={row.secuencia}
                         onChange={(e) =>
-                          updateRow(product.producto, index, "lote_proveedor", e.target.value)
+                          updateRow(product.producto, index, "secuencia", e.target.value)
                         }
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     </td>
-                    {/* ─── Resto de columnas ─── */}
-                    {["tipo", "gramaje", "ancho", "planta"].map((field) => (
+
+                    {/* ─── Resto de columnas editables ─── */}
+                    {[
+                      "tipo",
+                      "gramaje",
+                      "ancho",
+                      "planta",
+                    ].map((field) => (
                       <td key={field} className="p-2">
                         <input
                           type="text"
