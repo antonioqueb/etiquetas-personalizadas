@@ -27,7 +27,6 @@ const formatDateMXFallback = () => {
       year: "numeric",
     }).format(new Date());
   } catch {
-    // fallback extremo si el runtime no soporta Intl completo
     const d = new Date();
     const dd = String(d.getDate()).padStart(2, "0");
     const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -40,7 +39,7 @@ export default function PdfGenerator({ products, folio, labelDate }) {
   /* Dimensiones etiqueta */
   const PAGE_W = 200; // mm
   const PAGE_H = 100; // mm
-  const MARGIN = 8; // mm  (margen superior/izquierdo)
+  const MARGIN = 8;   // mm
 
   /* Código de barras */
   const BC_W_MM = 60;
@@ -99,40 +98,32 @@ export default function PdfGenerator({ products, folio, labelDate }) {
         const planta = (data.planta || "").toString().toUpperCase();
         const tipoLetter = (data.tipo || " ").trim().charAt(0).toUpperCase();
 
-        /* Logo */
+        /* Logo (esquina superior derecha) */
         doc.addImage(logo, "PNG", PAGE_W - MARGIN - logoW, MARGIN, logoW, logoH);
 
-        /* ─── Fecha (agregada) ───
-           Ubicación: arriba-izquierda, alineada a margen, discreta.
-           Puedes moverla cambiando dateX/dateY.
-        */
+        /* ─── Fecha (línea superior izquierda) ─── */
         doc.setFont("helvetica", "bold");
         doc.setFontSize(14);
-        const dateX = MARGIN;
-        const dateY = MARGIN + 6;
-        doc.text(`FECHA: ${printDate}`, dateX, dateY);
+        doc.text(`FECHA: ${printDate}`, MARGIN, MARGIN + 5);
 
-        /* Fuente base */
-        doc.setFont("helvetica", "bold");
-
-        /* ---- Línea 1: Secuencia/Lote ---- */
-        const line1Y = MARGIN + logoH + 6;
+        /* ---- Línea 1: Secuencia/Lote (debajo de la fecha) ---- */
+        const line1Y = MARGIN + 18;
         doc.setFontSize(70);
         doc.text(secuencia || loteEtiqueta, MARGIN, line1Y);
 
         /* ---- Línea 2: Gramaje y Ancho ---- */
         const line2Y = line1Y + 24;
 
-        // 1ª mitad (gramaje)
+        // Gramaje
         doc.setFontSize(72);
         const gramajeStr = `${tipoLetter}${gramaje}`;
-        const gramajeWidth = doc.getTextWidth(gramajeStr); // calcular antes de cambiar fuente
+        const gramajeWidth = doc.getTextWidth(gramajeStr);
         doc.text(gramajeStr, MARGIN, line2Y);
 
         doc.setFontSize(24);
         doc.text("GRS", MARGIN + gramajeWidth + 2, line2Y);
 
-        // 2ª mitad (ancho)
+        // Ancho
         doc.setFontSize(72);
         const anchoWidth = doc.getTextWidth(ancho);
         doc.text(ancho, COL2_X, line2Y);
