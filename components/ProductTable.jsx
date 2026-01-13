@@ -1,10 +1,11 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { fetchProductDetails } from "@/utils/api";
 import { Loader2, PlusCircle } from "lucide-react";
 import PdfGenerator from "@/components/PdfGenerator";
 
-export default function ProductTable({ folio, onResetFolio }) {
+export default function ProductTable({ folio, onResetFolio, labelDate }) {
   const [products, setProducts] = useState([]);
   const [rows, setRows] = useState({});
 
@@ -12,19 +13,22 @@ export default function ProductTable({ folio, onResetFolio }) {
   useEffect(() => {
     fetchProductDetails(folio).then((data) => {
       setProducts(data);
+
       const initialRows = {};
-      data.forEach((product) => {
-        const filasPorLote = product.lotes.map((lote) => ({
+      (data || []).forEach((product) => {
+        const filasPorLote = (product.lotes || []).map((lote) => ({
           lotes: [lote.lote],
           kilos: lote.cantidad,
-          secuencia: "",    // ⇠ CAMBIO: antes lote_proveedor
+          secuencia: "",
           tipo: "",
           gramaje: "",
           ancho: "",
           planta: "",
         }));
+
         initialRows[product.producto] = filasPorLote;
       });
+
       setRows(initialRows);
     });
   }, [folio]);
@@ -34,7 +38,7 @@ export default function ProductTable({ folio, onResetFolio }) {
     setRows((prev) => ({
       ...prev,
       [product]: [
-        ...prev[product],
+        ...(prev[product] || []),
         {
           lotes: [lote],
           kilos: "",
@@ -52,21 +56,21 @@ export default function ProductTable({ folio, onResetFolio }) {
   const updateRow = (product, index, field, value) => {
     setRows((prev) => {
       const next = { ...prev };
-      const updated = [...next[product]];
+      const updated = [...(next[product] || [])];
       const propagables = ["tipo", "gramaje", "ancho", "planta"];
 
       if (index === 0 && propagables.includes(field)) {
-        // Propaga a todas las líneas del mismo producto
         next[product] = updated.map((row) => ({ ...row, [field]: value }));
       } else {
         updated[index] = { ...updated[index], [field]: value };
         next[product] = updated;
       }
+
       return next;
     });
   };
 
-  if (products.length === 0) {
+  if (!products || products.length === 0) {
     return (
       <div className="flex justify-center items-center py-6">
         <Loader2 className="animate-spin text-blue-600" size={32} />
@@ -87,16 +91,32 @@ export default function ProductTable({ folio, onResetFolio }) {
             <p className="text-lg font-medium text-gray-800">
               <strong>Producto:</strong> {product.producto}
             </p>
-            <p><strong>Orden de Origen:</strong> {product.origin}</p>
-            <p><strong>Cantidad Demandada:</strong> {product.product_uom_qty}</p>
-            <p><strong>Cantidad Recibida:</strong> {product.quantity}</p>
-            <p><strong>Fecha de Recepción:</strong> {product.scheduled_date}</p>
+            <p>
+              <strong>Orden de Origen:</strong> {product.origin}
+            </p>
+            <p>
+              <strong>Cantidad Demandada:</strong> {product.product_uom_qty}
+            </p>
+            <p>
+              <strong>Cantidad Recibida:</strong> {product.quantity}
+            </p>
+            <p>
+              <strong>Fecha de Recepción:</strong> {product.scheduled_date}
+            </p>
+
+            {/* ✅ Fecha para etiqueta */}
+            {labelDate ? (
+              <p className="mt-2">
+                <strong>Fecha de Etiqueta:</strong> {labelDate}
+              </p>
+            ) : null}
           </div>
 
           {/* ───── Tabla editable ───── */}
           <h3 className="text-xl font-semibold text-green-700 mb-2">
             Líneas del Producto
           </h3>
+
           <button
             onClick={() => addRow(product.producto)}
             className="flex items-center bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg mb-4 transition"
@@ -110,27 +130,31 @@ export default function ProductTable({ folio, onResetFolio }) {
                 <tr className="bg-blue-600 text-white">
                   <th className="p-2 px-12">Lote</th>
                   <th className="p-2">Kilos</th>
-                  <th className="p-2 px-4">Secuencia</th> {/* ⇠ Etiqueta actualizada */}
+                  <th className="p-2 px-4">Secuencia</th>
                   <th className="p-2 px-4">Tipo</th>
                   <th className="p-2">Gramaje</th>
                   <th className="p-2">Ancho</th>
                   <th className="p-2">Planta</th>
                 </tr>
               </thead>
+
               <tbody>
-                {rows[product.producto]?.map((row, index) => (
-                  <tr key={index} className="border-b border-gray-300 hover:bg-gray-100">
-                    {/* ─── Lote (solo lectura) ─── */}
+                {(rows[product.producto] || []).map((row, index) => (
+                  <tr
+                    key={index}
+                    className="border-b border-gray-300 hover:bg-gray-100"
+                  >
+                    {/* Lote (solo lectura) */}
                     <td className="p-2">
                       <input
                         type="text"
-                        value={row.lotes[0] || ""}
+                        value={(row.lotes && row.lotes[0]) || ""}
                         readOnly
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg bg-gray-200 text-gray-700 cursor-not-allowed"
                       />
                     </td>
 
-                    {/* ─── Kilos (solo lectura) ─── */}
+                    {/* Kilos (solo lectura) */}
                     <td className="p-2">
                       <input
                         type="text"
@@ -140,31 +164,36 @@ export default function ProductTable({ folio, onResetFolio }) {
                       />
                     </td>
 
-                    {/* ─── Secuencia (editable) ─── */}
+                    {/* Secuencia (editable) */}
                     <td className="p-2">
                       <input
                         type="text"
                         value={row.secuencia}
                         onChange={(e) =>
-                          updateRow(product.producto, index, "secuencia", e.target.value)
+                          updateRow(
+                            product.producto,
+                            index,
+                            "secuencia",
+                            e.target.value
+                          )
                         }
                         className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                       />
                     </td>
 
-                    {/* ─── Resto de columnas editables ─── */}
-                    {[
-                      "tipo",
-                      "gramaje",
-                      "ancho",
-                      "planta",
-                    ].map((field) => (
+                    {/* Columnas editables */}
+                    {["tipo", "gramaje", "ancho", "planta"].map((field) => (
                       <td key={field} className="p-2">
                         <input
                           type="text"
                           value={row[field]}
                           onChange={(e) =>
-                            updateRow(product.producto, index, field, e.target.value)
+                            updateRow(
+                              product.producto,
+                              index,
+                              field,
+                              e.target.value
+                            )
                           }
                           className="w-full px-2 py-1 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
                         />
@@ -181,6 +210,7 @@ export default function ProductTable({ folio, onResetFolio }) {
       {/* ───── Generador de PDFs ───── */}
       <PdfGenerator
         folio={folio}
+        labelDate={labelDate}
         products={products.map((p) => ({
           ...p,
           lines: rows[p.producto] || [],

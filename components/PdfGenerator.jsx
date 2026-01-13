@@ -17,11 +17,30 @@ const loadImage = (src) =>
 const DPI = 300;
 const mmToPx = (mm) => Math.round((mm / 25.4) * DPI);
 
-export default function PdfGenerator({ products, folio }) {
+/* ─── Fecha fallback (CDMX) ─── */
+const formatDateMXFallback = () => {
+  try {
+    return new Intl.DateTimeFormat("es-MX", {
+      timeZone: "America/Mexico_City",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date());
+  } catch {
+    // fallback extremo si el runtime no soporta Intl completo
+    const d = new Date();
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = String(d.getFullYear());
+    return `${dd}/${mm}/${yyyy}`;
+  }
+};
+
+export default function PdfGenerator({ products, folio, labelDate }) {
   /* Dimensiones etiqueta */
-  const PAGE_W = 200;      // mm
-  const PAGE_H = 100;      // mm
-  const MARGIN = 8;        // mm  (margen superior/izquierdo)
+  const PAGE_W = 200; // mm
+  const PAGE_H = 100; // mm
+  const MARGIN = 8; // mm  (margen superior/izquierdo)
 
   /* Código de barras */
   const BC_W_MM = 60;
@@ -50,7 +69,11 @@ export default function PdfGenerator({ products, folio }) {
 
   /* ─── Generar PDF ─── */
   const generateAllPdfs = async () => {
-    const doc = new jsPDF({ unit: "mm", format: [PAGE_W, PAGE_H], orientation: "landscape" });
+    const doc = new jsPDF({
+      unit: "mm",
+      format: [PAGE_W, PAGE_H],
+      orientation: "landscape",
+    });
 
     /* Logo */
     const logo = await loadImage("/hm.png");
@@ -60,21 +83,34 @@ export default function PdfGenerator({ products, folio }) {
     const bcX = PAGE_W - MARGIN - BC_W_MM;
     const bcY = PAGE_H - MARGIN - BC_H_MM;
 
+    // Fecha efectiva a imprimir
+    const printDate = (labelDate || "").trim() || formatDateMXFallback();
+
     products.forEach((product, pIdx) => {
-      product.lines.forEach((data, lIdx) => {
+      (product.lines || []).forEach((data, lIdx) => {
         if (pIdx > 0 || lIdx > 0) doc.addPage();
 
         /* Datos */
         const loteEtiqueta = (data.lotes?.[0] || "").toUpperCase();
-        const secuencia    = (data.secuencia   || "").toUpperCase();
-        const gramaje      = (data.gramaje     || "").toString().toUpperCase();
-        const ancho        = (data.ancho       || "").toString().toUpperCase();
-        const kilos        = (data.kilos       || "").toString().toUpperCase();
-        const planta       = (data.planta      || "").toString().toUpperCase();
-        const tipoLetter   = (data.tipo        || " ").trim().charAt(0).toUpperCase();
+        const secuencia = (data.secuencia || "").toUpperCase();
+        const gramaje = (data.gramaje || "").toString().toUpperCase();
+        const ancho = (data.ancho || "").toString().toUpperCase();
+        const kilos = (data.kilos || "").toString().toUpperCase();
+        const planta = (data.planta || "").toString().toUpperCase();
+        const tipoLetter = (data.tipo || " ").trim().charAt(0).toUpperCase();
 
         /* Logo */
         doc.addImage(logo, "PNG", PAGE_W - MARGIN - logoW, MARGIN, logoW, logoH);
+
+        /* ─── Fecha (agregada) ───
+           Ubicación: arriba-izquierda, alineada a margen, discreta.
+           Puedes moverla cambiando dateX/dateY.
+        */
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(14);
+        const dateX = MARGIN;
+        const dateY = MARGIN + 6;
+        doc.text(`FECHA: ${printDate}`, dateX, dateY);
 
         /* Fuente base */
         doc.setFont("helvetica", "bold");
@@ -90,7 +126,7 @@ export default function PdfGenerator({ products, folio }) {
         // 1ª mitad (gramaje)
         doc.setFontSize(72);
         const gramajeStr = `${tipoLetter}${gramaje}`;
-        const gramajeWidth = doc.getTextWidth(gramajeStr);   // calcular antes de cambiar fuente
+        const gramajeWidth = doc.getTextWidth(gramajeStr); // calcular antes de cambiar fuente
         doc.text(gramajeStr, MARGIN, line2Y);
 
         doc.setFontSize(24);
