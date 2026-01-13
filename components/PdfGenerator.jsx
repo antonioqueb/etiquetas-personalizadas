@@ -101,13 +101,10 @@ export default function PdfGenerator({ products, folio, labelDate }) {
         /* Logo (esquina superior derecha) */
         doc.addImage(logo, "PNG", PAGE_W - MARGIN - logoW, MARGIN, logoW, logoH);
 
-        /* ─── Fecha (línea superior izquierda) ─── */
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(14);
-        doc.text(`FECHA: ${printDate}`, MARGIN, MARGIN + 5);
 
-        /* ---- Línea 1: Secuencia/Lote (debajo de la fecha) ---- */
-        const line1Y = MARGIN + 18;
+        /* ---- Línea 1: Secuencia/Lote ---- */
+        const line1Y = MARGIN + logoH + 6;
         doc.setFontSize(70);
         doc.text(secuencia || loteEtiqueta, MARGIN, line1Y);
 
@@ -143,6 +140,11 @@ export default function PdfGenerator({ products, folio, labelDate }) {
 
         doc.setFontSize(72);
         doc.text(`P${planta}`, COL2_X, line3Y);
+
+        /* ---- Línea 4: Fecha (sin prefijo, letra grande) ---- */
+        const line4Y = line3Y + 20;
+        doc.setFontSize(36);
+        doc.text(printDate, MARGIN, line4Y);
 
         /* ---- Código de barras ---- */
         const bcData = barcodeDataURL(loteEtiqueta, BC_W_MM, BC_H_MM);
