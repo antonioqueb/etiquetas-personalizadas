@@ -143,7 +143,7 @@ export default function PdfGenerator({ products, folio, labelDate }) {
 
         /* ---- Línea 4: Fecha (sin prefijo, letra grande) ---- */
         const line4Y = line3Y + 20;
-        doc.setFontSize(36);
+        doc.setFontSize(46);
         doc.text(printDate, MARGIN, line4Y);
 
         /* ---- Código de barras ---- */
